@@ -1,6 +1,6 @@
 import * as otel from '@opentelemetry/api';
 import * as tracing from '@opentelemetry/sdk-trace-base';
-import { InstrumentationLibrary } from '@opentelemetry/core'; // eslint-disable deprecation/deprecation
+import { InstrumentationScope } from '@opentelemetry/core';
 import { Sink, Sinks } from '@temporalio/workflow';
 
 /**
@@ -10,7 +10,7 @@ export interface SerializableSpan {
   readonly name: string;
   readonly kind: otel.SpanKind;
   readonly spanContext: otel.SpanContext;
-  readonly parentSpanId?: string;
+  readonly parentSpanContext?: otel.SpanContext;
   readonly startTime: otel.HrTime;
   readonly endTime: otel.HrTime;
   readonly status: otel.SpanStatus;
@@ -24,7 +24,7 @@ export interface SerializableSpan {
   readonly droppedEventsCount: number;
   // readonly resource: Resource;
   // eslint-disable-next-line deprecation/deprecation
-  readonly instrumentationLibrary: InstrumentationLibrary;
+  readonly instrumentationScope: InstrumentationScope;
 }
 
 export interface OpenTelemetryWorkflowExporter extends Sink {
@@ -55,56 +55,6 @@ export enum SpanName {
   WORKFLOW_SIGNAL_WITH_START = 'SignalWithStartWorkflow',
 
   /**
-   * Workflow is queried
-   */
-  WORKFLOW_QUERY = 'QueryWorkflow',
-
-  /**
-   * Workflow update is started by client
-   */
-  WORKFLOW_START_UPDATE = 'StartWorkflowUpdate',
-
-  /**
-   * Workflow is started with an update
-   */
-  WORKFLOW_UPDATE_WITH_START = 'UpdateWithStartWorkflow',
-
-  /**
-   * Workflow handles an incoming signal
-   */
-  WORKFLOW_HANDLE_SIGNAL = 'HandleSignal',
-
-  /**
-   * Workflow handles an incoming query
-   */
-  WORKFLOW_HANDLE_QUERY = 'HandleQuery',
-
-  /**
-   * Workflow handles an incoming update
-   */
-  WORKFLOW_HANDLE_UPDATE = 'HandleUpdate',
-
-  /**
-   * Workflow validates an incoming update
-   */
-  WORKFLOW_VALIDATE_UPDATE = 'ValidateUpdate',
-
-  /**
-   * Workflow is terminated
-   */
-  WORKFLOW_TERMINATE = 'TerminateWorkflow',
-
-  /**
-   * Workflow is cancelled
-   */
-  WORKFLOW_CANCEL = 'CancelWorkflow',
-
-  /**
-   * Workflow is described
-   */
-  WORKFLOW_DESCRIBE = 'DescribeWorkflow',
-
-  /**
    * Workflow run is executing
    */
   WORKFLOW_EXECUTE = 'RunWorkflow',
@@ -124,10 +74,6 @@ export enum SpanName {
    * Workflow is continuing as new
    */
   CONTINUE_AS_NEW = 'ContinueAsNew',
-  /**
-   * Nexus operation is started
-   */
-  NEXUS_OPERATION_START = 'StartNexusOperation',
 }
 
 export const SPAN_DELIMITER = ':';

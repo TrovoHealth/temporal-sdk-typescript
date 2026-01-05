@@ -539,7 +539,7 @@ if (RUN_INTEGRATION_TESTS) {
       export(_spans, resultCallback) {
         resultCallback({ code: ExportResultCode.SUCCESS });
       },
-      async shutdown() {},
+      async shutdown() { },
     };
 
     const sinks: InjectedSinks<OpenTelemetrySinks> = {
