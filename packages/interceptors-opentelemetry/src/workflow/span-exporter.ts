@@ -24,7 +24,7 @@ export class SpanExporter implements tracing.SpanExporter {
       name: span.name,
       kind: span.kind,
       spanContext: span.spanContext(),
-      parentSpanContext: span.parentSpanContext,
+      parentSpanId: span.parentSpanContext?.spanId,
       startTime: span.startTime,
       endTime: span.endTime,
       status: span.status,

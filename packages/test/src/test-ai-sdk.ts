@@ -18,7 +18,7 @@ import type {
 import { openai } from '@ai-sdk/openai';
 import { v4 as uuid4 } from 'uuid';
 import * as opentelemetry from '@opentelemetry/sdk-node';
-import { SEMRESATTRS_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { ATTR_SERVICE_NAME, SEMRESATTRS_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { ExportResultCode } from '@opentelemetry/core';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
@@ -309,8 +309,8 @@ test('Telemetry', async (t) => {
   try {
     const spans = Array<opentelemetry.tracing.ReadableSpan>();
 
-    const staticResource = new opentelemetry.resources.Resource({
-      [SEMRESATTRS_SERVICE_NAME]: 'ts-test-otel-worker',
+    const staticResource = opentelemetry.resources.resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: 'ts-test-otel-worker',
     });
     const traceExporter: opentelemetry.tracing.SpanExporter = {
       export(spans_, resultCallback) {
