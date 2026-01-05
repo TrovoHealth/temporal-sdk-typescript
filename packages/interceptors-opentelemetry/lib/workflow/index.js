@@ -1,0 +1,289 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OpenTelemetryInternalsInterceptor = exports.OpenTelemetryOutboundInterceptor = exports.OpenTelemetryInboundInterceptor = void 0;
+/* eslint-disable import/order */
+// eslint-disable-next-line import/no-unassigned-import
+require("./runtime"); // Patch the Workflow isolate runtime for opentelemetry
+const otel = __importStar(require("@opentelemetry/api"));
+const tracing = __importStar(require("@opentelemetry/sdk-trace-base"));
+const core_1 = require("@opentelemetry/core");
+const instrumentation_1 = require("../instrumentation");
+const context_manager_1 = require("./context-manager");
+const definitions_1 = require("./definitions");
+const span_exporter_1 = require("./span-exporter");
+const workflow_module_loader_1 = require("./workflow-module-loader");
+__exportStar(require("./definitions"), exports);
+let tracer = undefined;
+let contextManager = undefined;
+function getTracer() {
+    if (contextManager === undefined) {
+        contextManager = new context_manager_1.ContextManager();
+    }
+    if (tracer === undefined) {
+        const provider = new tracing.BasicTracerProvider({
+            spanProcessors: [
+                new tracing.SimpleSpanProcessor(new span_exporter_1.SpanExporter())
+            ]
+        });
+        otel.propagation.setGlobalPropagator(new core_1.W3CTraceContextPropagator());
+        otel.trace.setGlobalTracerProvider(provider);
+        otel.context.setGlobalContextManager(contextManager);
+        tracer = provider.getTracer('@temporalio/interceptor-workflow');
+    }
+    return tracer;
+}
+/**
+ * Intercepts calls to run a Workflow
+ *
+ * Wraps the operation in an opentelemetry Span and links it to a parent Span context if one is
+ * provided in the Workflow input headers.
+ *
+ * `@temporalio/workflow` must be provided by host package in order to function.
+ */
+class OpenTelemetryInboundInterceptor {
+    tracer = getTracer();
+    constructor() {
+        (0, workflow_module_loader_1.ensureWorkflowModuleLoaded)();
+    }
+    async execute(input, next) {
+        const { workflowInfo, ContinueAsNew } = (0, workflow_module_loader_1.getWorkflowModule)();
+        const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
+        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+            await Promise.resolve();
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.WORKFLOW_EXECUTE}${definitions_1.SPAN_DELIMITER}${workflowInfo().workflowType}`,
+            fn: () => next(input),
+            context,
+            acceptableErrors: (err) => err instanceof ContinueAsNew,
+        });
+    }
+    async handleSignal(input, next) {
+        // Tracing of inbound signals was added in v1.11.5.
+        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsTracesInboundSignals'))
+            return next(input);
+        const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
+        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+            await Promise.resolve();
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.WORKFLOW_HANDLE_SIGNAL}${definitions_1.SPAN_DELIMITER}${input.signalName}`,
+            fn: () => next(input),
+            context,
+        });
+    }
+    async handleUpdate(input, next) {
+        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsInstrumentsAllMethods'))
+            return next(input);
+        const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.WORKFLOW_HANDLE_UPDATE}${definitions_1.SPAN_DELIMITER}${input.name}`,
+            fn: (span) => {
+                span.setAttribute(instrumentation_1.UPDATE_ID_ATTR_KEY, input.updateId);
+                return next(input);
+            },
+            context,
+        });
+    }
+    validateUpdate(input, next) {
+        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsInstrumentsAllMethods'))
+            return next(input);
+        const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
+        (0, instrumentation_1.instrumentSync)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.WORKFLOW_VALIDATE_UPDATE}${definitions_1.SPAN_DELIMITER}${input.name}`,
+            fn: (span) => {
+                span.setAttribute(instrumentation_1.UPDATE_ID_ATTR_KEY, input.updateId);
+                return next(input);
+            },
+            context,
+        });
+    }
+    async handleQuery(input, next) {
+        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsInstrumentsAllMethods'))
+            return next(input);
+        const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.WORKFLOW_HANDLE_QUERY}${definitions_1.SPAN_DELIMITER}${input.queryName}`,
+            fn: () => next(input),
+            context,
+        });
+    }
+}
+exports.OpenTelemetryInboundInterceptor = OpenTelemetryInboundInterceptor;
+/**
+ * Intercepts outbound calls to schedule an Activity
+ *
+ * Wraps the operation in an opentelemetry Span and passes it to the Activity via headers.
+ *
+ * `@temporalio/workflow` must be provided by host package in order to function.
+ */
+class OpenTelemetryOutboundInterceptor {
+    tracer = getTracer();
+    constructor() {
+        (0, workflow_module_loader_1.ensureWorkflowModuleLoaded)();
+    }
+    async scheduleActivity(input, next) {
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.ACTIVITY_START}${definitions_1.SPAN_DELIMITER}${input.activityType}`,
+            fn: async () => {
+                const headers = (0, instrumentation_1.headersWithContext)(input.headers);
+                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                    await Promise.resolve();
+                return next({
+                    ...input,
+                    headers,
+                });
+            },
+        });
+    }
+    async scheduleLocalActivity(input, next) {
+        // Tracing of local activities was added in v1.11.6.
+        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsTracesLocalActivities'))
+            return next(input);
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.ACTIVITY_START}${definitions_1.SPAN_DELIMITER}${input.activityType}`,
+            fn: async () => {
+                const headers = (0, instrumentation_1.headersWithContext)(input.headers);
+                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                    await Promise.resolve();
+                return next({
+                    ...input,
+                    headers,
+                });
+            },
+        });
+    }
+    async startNexusOperation(input, next) {
+        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsInstrumentsAllMethods'))
+            return next(input);
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.NEXUS_OPERATION_START}${definitions_1.SPAN_DELIMITER}${input.service}${definitions_1.SPAN_DELIMITER}${input.operation}`,
+            fn: async (span) => {
+                span.setAttribute(instrumentation_1.NEXUS_SERVICE_ATTR_KEY, input.service);
+                span.setAttribute(instrumentation_1.NEXUS_OPERATION_ATTR_KEY, input.operation);
+                span.setAttribute(instrumentation_1.NEXUS_ENDPOINT_ATTR_KEY, input.endpoint);
+                return await next(input);
+            },
+        });
+    }
+    async startChildWorkflowExecution(input, next) {
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.CHILD_WORKFLOW_START}${definitions_1.SPAN_DELIMITER}${input.workflowType}`,
+            fn: async () => {
+                const headers = (0, instrumentation_1.headersWithContext)(input.headers);
+                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                    await Promise.resolve();
+                return next({
+                    ...input,
+                    headers,
+                });
+            },
+        });
+    }
+    async continueAsNew(input, next) {
+        const { ContinueAsNew } = (0, workflow_module_loader_1.getWorkflowModule)();
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.CONTINUE_AS_NEW}${definitions_1.SPAN_DELIMITER}${input.options.workflowType}`,
+            fn: async () => {
+                const headers = (0, instrumentation_1.headersWithContext)(input.headers);
+                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                    await Promise.resolve();
+                return next({
+                    ...input,
+                    headers,
+                });
+            },
+            acceptableErrors: (err) => err instanceof ContinueAsNew,
+        });
+    }
+    async signalWorkflow(input, next) {
+        return await (0, instrumentation_1.instrument)({
+            tracer: this.tracer,
+            spanName: `${definitions_1.SpanName.WORKFLOW_SIGNAL}${definitions_1.SPAN_DELIMITER}${input.signalName}`,
+            fn: async () => {
+                const headers = (0, instrumentation_1.headersWithContext)(input.headers);
+                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                    await Promise.resolve();
+                return next({
+                    ...input,
+                    headers,
+                });
+            },
+        });
+    }
+    getLogAttributes(input, next) {
+        const span = otel.trace.getSpan(otel.context.active());
+        const spanContext = span?.spanContext();
+        if (spanContext && otel.isSpanContextValid(spanContext)) {
+            return next({
+                trace_id: spanContext.traceId,
+                span_id: spanContext.spanId,
+                trace_flags: `0${spanContext.traceFlags.toString(16)}`,
+                ...input,
+            });
+        }
+        else {
+            return next(input);
+        }
+    }
+    getMetricTags(input, next) {
+        const span = otel.trace.getSpan(otel.context.active());
+        const spanContext = span?.spanContext();
+        if (spanContext && otel.isSpanContextValid(spanContext)) {
+            return next({
+                trace_id: spanContext.traceId,
+                span_id: spanContext.spanId,
+                trace_flags: `0${spanContext.traceFlags.toString(16)}`,
+                ...input,
+            });
+        }
+        else {
+            return next(input);
+        }
+    }
+}
+exports.OpenTelemetryOutboundInterceptor = OpenTelemetryOutboundInterceptor;
+class OpenTelemetryInternalsInterceptor {
+    async dispose(input, next) {
+        if (contextManager !== undefined) {
+            contextManager.disable();
+        }
+        next(input);
+    }
+}
+exports.OpenTelemetryInternalsInterceptor = OpenTelemetryInternalsInterceptor;
+//# sourceMappingURL=index.js.map
