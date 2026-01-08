@@ -12,7 +12,9 @@ import { BasicTracerProvider, InMemorySpanExporter, ReadableSpan, SimpleSpanProc
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import test from 'ava';
 import { v4 as uuid4 } from 'uuid';
-import { WorkflowClient } from '@temporalio/client';
+import type * as workflowImportStub from '@temporalio/interceptors-opentelemetry/lib/workflow/workflow-imports';
+import type * as workflowImportImpl from '@temporalio/interceptors-opentelemetry/lib/workflow/workflow-imports-impl';
+import { WorkflowClient, WithStartWorkflowOperation, WorkflowClientInterceptor } from '@temporalio/client';
 import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry/lib/client';
 import { OpenTelemetryWorkflowClientCallsInterceptor } from '@temporalio/interceptors-opentelemetry';
 import { instrument } from '@temporalio/interceptors-opentelemetry/lib/instrumentation';
@@ -605,4 +607,50 @@ test('Can replay signal workflow from 1.13.1', async (t) => {
       hist
     );
   });
+});
+
+test('Can replay smorgasbord from 1.13.2', async (t) => {
+  const hist = await loadHistory('otel_smorgasbord_1_13_2.json');
+  await t.notThrowsAsync(async () => {
+    await Worker.runReplayHistory(
+      {
+        workflowBundle: await createTestWorkflowBundle({
+          workflowsPath: require.resolve('./workflows'),
+          workflowInterceptorModules: [require.resolve('./workflows/otel-interceptors')],
+        }),
+        interceptors: {
+          workflowModules: [require.resolve('./workflows/otel-interceptors')],
+          activity: [
+            (ctx) => ({
+              inbound: new OpenTelemetryActivityInboundInterceptor(ctx),
+              outbound: new OpenTelemetryActivityOutboundInterceptor(ctx),
+            }),
+          ],
+        },
+      },
+      hist
+    );
+  });
+});
+
+// Skipped as we only care that it compiles
+test.skip('otel interceptors are complete', async (t) => {
+  // We only use this to verify that we trace all spans via typechecking
+  // Doing this instead of directly changing the `implements` to avoid leaking this in the docs
+  const _wfl_inbound = {} as OpenTelemetryInboundInterceptor satisfies Required<WorkflowInboundCallsInterceptor>;
+  const _wfl_outbound = {} as OpenTelemetryOutboundInterceptor satisfies Required<
+    Omit<WorkflowOutboundCallsInterceptor, 'startTimer'>
+  >;
+  const _act_inbound =
+    {} as OpenTelemetryActivityInboundInterceptor satisfies Required<ActivityInboundCallsInterceptor>;
+  const _act_outbound =
+    {} as OpenTelemetryActivityOutboundInterceptor satisfies Required<ActivityOutboundCallsInterceptor>;
+  const _client = {} as OpenTelemetryWorkflowClientInterceptor satisfies Required<WorkflowClientInterceptor>;
+  t.pass();
+});
+
+test.skip('workflow-imports stub and impl have same type', async (t) => {
+  const _implSatisfiesStub = {} as typeof workflowImportImpl satisfies typeof workflowImportStub;
+  const _stubSatisfiesImpl = {} as typeof workflowImportStub satisfies typeof workflowImportImpl;
+  t.pass();
 });
