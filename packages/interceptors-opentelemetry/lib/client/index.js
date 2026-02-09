@@ -26,7 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OpenTelemetryWorkflowClientInterceptor = void 0;
 const otel = __importStar(require("@opentelemetry/api"));
 const instrumentation_1 = require("../instrumentation");
-const workflow_1 = require("../workflow");
+const definitions_1 = require("../workflow/definitions");
 /**
  * Intercepts calls to start a Workflow.
  *
@@ -40,7 +40,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async start(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: `${workflow_1.SpanName.WORKFLOW_START}${workflow_1.SPAN_DELIMITER}${input.workflowType}`,
+            spanName: `${definitions_1.SpanName.WORKFLOW_START}${definitions_1.SPAN_DELIMITER}${input.workflowType}`,
             fn: async (span) => {
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.options.workflowId);
@@ -53,7 +53,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async signal(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: `${workflow_1.SpanName.WORKFLOW_SIGNAL}${workflow_1.SPAN_DELIMITER}${input.signalName}`,
+            spanName: `${definitions_1.SpanName.WORKFLOW_SIGNAL}${definitions_1.SPAN_DELIMITER}${input.signalName}`,
             fn: async (span) => {
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.workflowExecution.workflowId);
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
@@ -64,7 +64,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async startWithDetails(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: `${workflow_1.SpanName.WORKFLOW_START}${workflow_1.SPAN_DELIMITER}${input.workflowType}`,
+            spanName: `${definitions_1.SpanName.WORKFLOW_START}${definitions_1.SPAN_DELIMITER}${input.workflowType}`,
             fn: async (span) => {
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.options.workflowId);
@@ -77,7 +77,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async startUpdate(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: `${workflow_1.SpanName.WORKFLOW_START_UPDATE}${workflow_1.SPAN_DELIMITER}${input.updateName}`,
+            spanName: `${definitions_1.SpanName.WORKFLOW_START_UPDATE}${definitions_1.SPAN_DELIMITER}${input.updateName}`,
             fn: async (span) => {
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.workflowExecution.workflowId);
                 if (input.options.updateId) {
@@ -93,7 +93,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async startUpdateWithStart(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: `${workflow_1.SpanName.WORKFLOW_UPDATE_WITH_START}${workflow_1.SPAN_DELIMITER}${input.updateName}`,
+            spanName: `${definitions_1.SpanName.WORKFLOW_UPDATE_WITH_START}${definitions_1.SPAN_DELIMITER}${input.updateName}`,
             fn: async (span) => {
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.workflowStartOptions.workflowId);
                 if (input.updateOptions.updateId) {
@@ -112,7 +112,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async signalWithStart(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: `${workflow_1.SpanName.WORKFLOW_SIGNAL_WITH_START}${workflow_1.SPAN_DELIMITER}${input.workflowType}`,
+            spanName: `${definitions_1.SpanName.WORKFLOW_SIGNAL_WITH_START}${definitions_1.SPAN_DELIMITER}${input.workflowType}`,
             fn: async (span) => {
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.options.workflowId);
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
@@ -125,7 +125,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async query(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: `${workflow_1.SpanName.WORKFLOW_QUERY}${workflow_1.SPAN_DELIMITER}${input.queryType}`,
+            spanName: `${definitions_1.SpanName.WORKFLOW_QUERY}${definitions_1.SPAN_DELIMITER}${input.queryType}`,
             fn: async (span) => {
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.workflowExecution.workflowId);
@@ -139,7 +139,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async terminate(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: workflow_1.SpanName.WORKFLOW_TERMINATE,
+            spanName: definitions_1.SpanName.WORKFLOW_TERMINATE,
             fn: async (span) => {
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.workflowExecution.workflowId);
                 if (input.workflowExecution.runId) {
@@ -155,7 +155,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async cancel(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: workflow_1.SpanName.WORKFLOW_CANCEL,
+            spanName: definitions_1.SpanName.WORKFLOW_CANCEL,
             fn: async (span) => {
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.workflowExecution.workflowId);
                 if (input.workflowExecution.runId) {
@@ -168,7 +168,7 @@ class OpenTelemetryWorkflowClientInterceptor {
     async describe(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: workflow_1.SpanName.WORKFLOW_DESCRIBE,
+            spanName: definitions_1.SpanName.WORKFLOW_DESCRIBE,
             fn: async (span) => {
                 span.setAttribute(instrumentation_1.WORKFLOW_ID_ATTR_KEY, input.workflowExecution.workflowId);
                 if (input.workflowExecution.runId) {

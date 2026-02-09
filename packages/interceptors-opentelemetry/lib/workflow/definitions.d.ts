@@ -1,7 +1,7 @@
 import * as otel from '@opentelemetry/api';
 import * as tracing from '@opentelemetry/sdk-trace-base';
-import { InstrumentationScope } from '@opentelemetry/core';
-import { Sink, Sinks } from '@temporalio/workflow';
+import type { InstrumentationScope } from '@opentelemetry/core';
+import type { Sink, Sinks } from '@temporalio/workflow';
 /**
  * Serializable version of the opentelemetry Span for cross isolate copying
  */
@@ -9,7 +9,7 @@ export interface SerializableSpan {
     readonly name: string;
     readonly kind: otel.SpanKind;
     readonly spanContext: otel.SpanContext;
-    readonly parentSpanId?: string;
+    readonly parentSpanContext?: otel.SpanContext;
     readonly startTime: otel.HrTime;
     readonly endTime: otel.HrTime;
     readonly status: otel.SpanStatus;

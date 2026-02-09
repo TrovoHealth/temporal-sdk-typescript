@@ -3,7 +3,7 @@ import type { Resource } from '@opentelemetry/resources';
 import type { SpanExporter } from '@opentelemetry/sdk-trace-base';
 import type { Context as ActivityContext } from '@temporalio/activity';
 import type { Next, ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor, InjectedSink, GetLogAttributesInput, GetMetricTagsInput, ActivityExecuteInput } from '@temporalio/worker';
-import { type OpenTelemetryWorkflowExporter } from '../workflow';
+import { type OpenTelemetryWorkflowExporter } from '../workflow/definitions';
 export interface InterceptorOptions {
     readonly tracer?: otel.Tracer;
 }

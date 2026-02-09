@@ -1,7 +1,7 @@
+import { type AsyncLocalStorage } from 'async_hooks';
 import * as otel from '@opentelemetry/api';
 export declare class ContextManager implements otel.ContextManager {
-    protected storage: import("async_hooks").AsyncLocalStorage<otel.Context> | undefined;
-    constructor();
+    protected storage: AsyncLocalStorage<otel.Context>;
     active(): otel.Context;
     bind<T>(context: otel.Context, target: T): T;
     enable(): this;

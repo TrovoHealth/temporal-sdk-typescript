@@ -4,9 +4,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Sets global variables required for importing opentelemetry in isolate
  * @module
  */
-const workflow_module_loader_1 = require("./workflow-module-loader");
-const inWorkflowContext = (0, workflow_module_loader_1.getWorkflowModuleIfAvailable)()?.inWorkflowContext;
-if (inWorkflowContext?.()) {
+const workflow_imports_1 = require("./workflow-imports");
+if ((0, workflow_imports_1.inWorkflowContext)()) {
     // Required by opentelemetry (pretend to be a browser)
     Object.assign(globalThis, {
         performance: {

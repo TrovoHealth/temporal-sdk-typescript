@@ -12,7 +12,6 @@ export * from './definitions';
  */
 export declare class OpenTelemetryInboundInterceptor implements WorkflowInboundCallsInterceptor {
     protected readonly tracer: otel.Tracer;
-    constructor();
     execute(input: WorkflowExecuteInput, next: Next<WorkflowInboundCallsInterceptor, 'execute'>): Promise<unknown>;
     handleSignal(input: SignalInput, next: Next<WorkflowInboundCallsInterceptor, 'handleSignal'>): Promise<void>;
     handleUpdate(input: UpdateInput, next: Next<WorkflowInboundCallsInterceptor, 'handleUpdate'>): Promise<unknown>;
@@ -28,7 +27,6 @@ export declare class OpenTelemetryInboundInterceptor implements WorkflowInboundC
  */
 export declare class OpenTelemetryOutboundInterceptor implements WorkflowOutboundCallsInterceptor {
     protected readonly tracer: otel.Tracer;
-    constructor();
     scheduleActivity(input: ActivityInput, next: Next<WorkflowOutboundCallsInterceptor, 'scheduleActivity'>): Promise<unknown>;
     scheduleLocalActivity(input: LocalActivityInput, next: Next<WorkflowOutboundCallsInterceptor, 'scheduleLocalActivity'>): Promise<unknown>;
     startNexusOperation(input: StartNexusOperationInput, next: Next<WorkflowOutboundCallsInterceptor, 'startNexusOperation'>): Promise<StartNexusOperationOutput>;

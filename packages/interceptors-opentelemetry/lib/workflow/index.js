@@ -37,7 +37,7 @@ const instrumentation_1 = require("../instrumentation");
 const context_manager_1 = require("./context-manager");
 const definitions_1 = require("./definitions");
 const span_exporter_1 = require("./span-exporter");
-const workflow_module_loader_1 = require("./workflow-module-loader");
+const workflow_imports_1 = require("./workflow-imports");
 __exportStar(require("./definitions"), exports);
 let tracer = undefined;
 let contextManager = undefined;
@@ -68,28 +68,24 @@ function getTracer() {
  */
 class OpenTelemetryInboundInterceptor {
     tracer = getTracer();
-    constructor() {
-        (0, workflow_module_loader_1.ensureWorkflowModuleLoaded)();
-    }
     async execute(input, next) {
-        const { workflowInfo, ContinueAsNew } = (0, workflow_module_loader_1.getWorkflowModule)();
         const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
-        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+        if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceporsAvoidsExtraYields))
             await Promise.resolve();
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
-            spanName: `${definitions_1.SpanName.WORKFLOW_EXECUTE}${definitions_1.SPAN_DELIMITER}${workflowInfo().workflowType}`,
+            spanName: `${definitions_1.SpanName.WORKFLOW_EXECUTE}${definitions_1.SPAN_DELIMITER}${(0, workflow_imports_1.workflowInfo)().workflowType}`,
             fn: () => next(input),
             context,
-            acceptableErrors: (err) => err instanceof ContinueAsNew,
+            acceptableErrors: (err) => err instanceof workflow_imports_1.ContinueAsNew,
         });
     }
     async handleSignal(input, next) {
         // Tracing of inbound signals was added in v1.11.5.
-        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsTracesInboundSignals'))
+        if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceptorsTracesInboundSignals))
             return next(input);
         const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
-        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+        if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceporsAvoidsExtraYields))
             await Promise.resolve();
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
@@ -99,7 +95,7 @@ class OpenTelemetryInboundInterceptor {
         });
     }
     async handleUpdate(input, next) {
-        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsInstrumentsAllMethods'))
+        if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceptorsInstrumentsAllMethods))
             return next(input);
         const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
         return await (0, instrumentation_1.instrument)({
@@ -113,7 +109,7 @@ class OpenTelemetryInboundInterceptor {
         });
     }
     validateUpdate(input, next) {
-        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsInstrumentsAllMethods'))
+        if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceptorsInstrumentsAllMethods))
             return next(input);
         const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
         (0, instrumentation_1.instrumentSync)({
@@ -127,7 +123,7 @@ class OpenTelemetryInboundInterceptor {
         });
     }
     async handleQuery(input, next) {
-        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsInstrumentsAllMethods'))
+        if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceptorsInstrumentsAllMethods))
             return next(input);
         const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
         return await (0, instrumentation_1.instrument)({
@@ -148,16 +144,13 @@ exports.OpenTelemetryInboundInterceptor = OpenTelemetryInboundInterceptor;
  */
 class OpenTelemetryOutboundInterceptor {
     tracer = getTracer();
-    constructor() {
-        (0, workflow_module_loader_1.ensureWorkflowModuleLoaded)();
-    }
     async scheduleActivity(input, next) {
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
             spanName: `${definitions_1.SpanName.ACTIVITY_START}${definitions_1.SPAN_DELIMITER}${input.activityType}`,
             fn: async () => {
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
-                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceporsAvoidsExtraYields))
                     await Promise.resolve();
                 return next({
                     ...input,
@@ -168,14 +161,14 @@ class OpenTelemetryOutboundInterceptor {
     }
     async scheduleLocalActivity(input, next) {
         // Tracing of local activities was added in v1.11.6.
-        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsTracesLocalActivities'))
+        if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceptorsTracesLocalActivities))
             return next(input);
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
             spanName: `${definitions_1.SpanName.ACTIVITY_START}${definitions_1.SPAN_DELIMITER}${input.activityType}`,
             fn: async () => {
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
-                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceporsAvoidsExtraYields))
                     await Promise.resolve();
                 return next({
                     ...input,
@@ -185,7 +178,7 @@ class OpenTelemetryOutboundInterceptor {
         });
     }
     async startNexusOperation(input, next) {
-        if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceptorsInstrumentsAllMethods'))
+        if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceptorsInstrumentsAllMethods))
             return next(input);
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
@@ -204,7 +197,7 @@ class OpenTelemetryOutboundInterceptor {
             spanName: `${definitions_1.SpanName.CHILD_WORKFLOW_START}${definitions_1.SPAN_DELIMITER}${input.workflowType}`,
             fn: async () => {
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
-                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceporsAvoidsExtraYields))
                     await Promise.resolve();
                 return next({
                     ...input,
@@ -214,20 +207,19 @@ class OpenTelemetryOutboundInterceptor {
         });
     }
     async continueAsNew(input, next) {
-        const { ContinueAsNew } = (0, workflow_module_loader_1.getWorkflowModule)();
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
             spanName: `${definitions_1.SpanName.CONTINUE_AS_NEW}${definitions_1.SPAN_DELIMITER}${input.options.workflowType}`,
             fn: async () => {
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
-                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceporsAvoidsExtraYields))
                     await Promise.resolve();
                 return next({
                     ...input,
                     headers,
                 });
             },
-            acceptableErrors: (err) => err instanceof ContinueAsNew,
+            acceptableErrors: (err) => err instanceof workflow_imports_1.ContinueAsNew,
         });
     }
     async signalWorkflow(input, next) {
@@ -236,7 +228,7 @@ class OpenTelemetryOutboundInterceptor {
             spanName: `${definitions_1.SpanName.WORKFLOW_SIGNAL}${definitions_1.SPAN_DELIMITER}${input.signalName}`,
             fn: async () => {
                 const headers = (0, instrumentation_1.headersWithContext)(input.headers);
-                if (!(0, workflow_module_loader_1.hasSdkFlag)('OpenTelemetryInterceporsAvoidsExtraYields'))
+                if (!(0, workflow_imports_1.getActivator)().hasFlag(workflow_imports_1.SdkFlags.OpenTelemetryInterceporsAvoidsExtraYields))
                     await Promise.resolve();
                 return next({
                     ...input,

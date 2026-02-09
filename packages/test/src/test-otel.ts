@@ -23,7 +23,15 @@ import {
   OpenTelemetryActivityInboundInterceptor,
   OpenTelemetryActivityOutboundInterceptor,
 } from '@temporalio/interceptors-opentelemetry/lib/worker';
-import { OpenTelemetrySinks, SpanName, SPAN_DELIMITER } from '@temporalio/interceptors-opentelemetry/lib/workflow';
+import {
+  OpenTelemetryInboundInterceptor,
+  OpenTelemetryOutboundInterceptor,
+  OpenTelemetrySinks,
+  SpanName,
+  SPAN_DELIMITER,
+} from '@temporalio/interceptors-opentelemetry/lib/workflow';
+import type { WorkflowInboundCallsInterceptor, WorkflowOutboundCallsInterceptor } from '@temporalio/workflow';
+import type { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } from '@temporalio/worker';
 import { DefaultLogger, InjectedSinks, Runtime } from '@temporalio/worker';
 import * as activities from './activities';
 import { loadHistory, RUN_INTEGRATION_TESTS, TestWorkflowEnvironment, Worker } from './helpers';

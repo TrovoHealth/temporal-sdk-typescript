@@ -25,15 +25,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContextManager = void 0;
 const otel = __importStar(require("@opentelemetry/api"));
-const workflow_module_loader_1 = require("./workflow-module-loader");
-const AsyncLocalStorage = (0, workflow_module_loader_1.getWorkflowModuleIfAvailable)()?.AsyncLocalStorage;
 class ContextManager {
-    // If `@temporalio/workflow` is not available, ignore for now.
-    // When ContextManager is constructed module resolution error will be thrown.
-    storage = AsyncLocalStorage ? new AsyncLocalStorage() : undefined;
-    constructor() {
-        (0, workflow_module_loader_1.ensureWorkflowModuleLoaded)();
-    }
+    // The workflow sandbox provides AsyncLocalStorage through globalThis.
+    storage = new globalThis.AsyncLocalStorage();
     active() {
         return this.storage.getStore() || otel.ROOT_CONTEXT;
     }

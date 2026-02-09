@@ -27,7 +27,7 @@ exports.OpenTelemetryActivityOutboundInterceptor = exports.OpenTelemetryActivity
 exports.makeWorkflowExporter = makeWorkflowExporter;
 const otel = __importStar(require("@opentelemetry/api"));
 const instrumentation_1 = require("../instrumentation");
-const workflow_1 = require("../workflow");
+const definitions_1 = require("../workflow/definitions");
 /**
  * Intercepts calls to start an Activity.
  *
@@ -43,7 +43,7 @@ class OpenTelemetryActivityInboundInterceptor {
     }
     async execute(input, next) {
         const context = (0, instrumentation_1.extractContextFromHeaders)(input.headers);
-        const spanName = `${workflow_1.SpanName.ACTIVITY_EXECUTE}${workflow_1.SPAN_DELIMITER}${this.ctx.info.activityType}`;
+        const spanName = `${definitions_1.SpanName.ACTIVITY_EXECUTE}${definitions_1.SPAN_DELIMITER}${this.ctx.info.activityType}`;
         return await (0, instrumentation_1.instrument)({
             tracer: this.tracer,
             spanName,

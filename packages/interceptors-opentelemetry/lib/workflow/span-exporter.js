@@ -2,14 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SpanExporter = void 0;
 const core_1 = require("@opentelemetry/core");
-const workflow_module_loader_1 = require("./workflow-module-loader");
-const exporter = (0, workflow_module_loader_1.getWorkflowModuleIfAvailable)()?.proxySinks()?.exporter;
+const workflow_imports_1 = require("./workflow-imports");
 class SpanExporter {
-    constructor() {
-        (0, workflow_module_loader_1.ensureWorkflowModuleLoaded)();
-    }
+    exporter;
     export(spans, resultCallback) {
-        exporter.export(spans.map((span) => this.makeSerializable(span)));
+        if (!this.exporter) {
+            this.exporter = (0, workflow_imports_1.proxySinks)().exporter;
+        }
+        this.exporter.export(spans.map((span) => this.makeSerializable(span)));
         resultCallback({ code: core_1.ExportResultCode.SUCCESS });
     }
     async shutdown() {
@@ -20,7 +20,7 @@ class SpanExporter {
             name: span.name,
             kind: span.kind,
             spanContext: span.spanContext(),
-            parentSpanId: span.parentSpanContext?.spanId,
+            parentSpanContext: span.parentSpanContext,
             startTime: span.startTime,
             endTime: span.endTime,
             status: span.status,
