@@ -1,7 +1,12 @@
 import * as otel from '@opentelemetry/api';
 import * as tracing from '@opentelemetry/sdk-trace-base';
-import { InstrumentationScope } from '@opentelemetry/core';
-import { Sink, Sinks } from '@temporalio/workflow';
+import { InstrumentationLibrary } from '@opentelemetry/core'; // eslint-disable deprecation/deprecation
+import type { Sink, Sinks } from '@temporalio/workflow';
+
+/**
+ * Serializable version of SpanContext where traceState is converted to a string.
+ */
+export type SerializableSpanContext = Omit<otel.SpanContext, 'traceState'> & { traceState?: string };
 
 /**
  * Serializable version of the opentelemetry Span for cross isolate copying
@@ -9,7 +14,7 @@ import { Sink, Sinks } from '@temporalio/workflow';
 export interface SerializableSpan {
   readonly name: string;
   readonly kind: otel.SpanKind;
-  readonly spanContext: otel.SpanContext;
+  readonly spanContext: SerializableSpanContext;
   readonly parentSpanId?: string;
   readonly startTime: otel.HrTime;
   readonly endTime: otel.HrTime;
@@ -24,7 +29,7 @@ export interface SerializableSpan {
   readonly droppedEventsCount: number;
   // readonly resource: Resource;
   // eslint-disable-next-line deprecation/deprecation
-  readonly instrumentationScope: InstrumentationScope;
+  readonly instrumentationLibrary: InstrumentationLibrary;
 }
 
 export interface OpenTelemetryWorkflowExporter extends Sink {

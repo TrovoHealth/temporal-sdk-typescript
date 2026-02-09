@@ -29,6 +29,7 @@ export type WorkflowExecutionStatusName =
   | 'TERMINATED'
   | 'CONTINUED_AS_NEW'
   | 'TIMED_OUT'
+  | 'PAUSED'
   | 'UNKNOWN'; // UNKNOWN is reserved for future enum values
 
 export interface WorkflowExecutionInfo {
@@ -123,6 +124,7 @@ export interface CallContext {
  */
 export interface ConnectionLike {
   workflowService: WorkflowService;
+  operatorService: OperatorService;
   plugins: ConnectionPlugin[];
   close(): Promise<void>;
   ensureConnected(): Promise<void>;

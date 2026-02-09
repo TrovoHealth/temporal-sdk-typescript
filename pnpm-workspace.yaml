@@ -17,9 +17,11 @@ packages:
   - packages/testing
   - packages/worker
   - packages/workflow
+  - scripts
 
 ignoreScripts: true
 
+# Minimum release age, in minutes (1 day)
 minimumReleaseAge: 1440
 
 # Allow depending on just published Temporal packages
@@ -32,3 +34,11 @@ peerDependencyRules:
     # Peer of json-joy@9.9.1, missing in memfs@4.6.0
     # No apparent issue at runtime if not present
     - quill-delta
+
+overrides:
+  # Can be removed once a release of `express` with an updated qs is cut
+  qs: ^6.14.1
+
+  hono@<4.11.4: '>=4.11.4'
+  jws@<3.2.3: '>=3.2.3'
+  tar@<=7.5.2: '>=7.5.3'

@@ -11,6 +11,7 @@ import {
 } from '@temporalio/client';
 import {
   LocalTestWorkflowEnvironmentOptions,
+  NexusEndpointIdentifier,
   workflowInterceptorModules as defaultWorkflowInterceptorModules,
 } from '@temporalio/testing';
 import {
@@ -39,16 +40,8 @@ export interface Context {
 }
 
 const defaultDynamicConfigOptions = [
-  'frontend.activityAPIsEnabled=true',
-  'frontend.enableExecuteMultiOperation=true',
-  'frontend.workerVersioningDataAPIs=true',
-  'frontend.workerVersioningWorkflowAPIs=true',
   'system.enableActivityEagerExecution=true',
-  'system.enableDeploymentVersions=true',
-  'system.enableEagerWorkflowStart=true',
-  'system.forceSearchAttributesCacheRefreshOnRead=true',
-  'worker.buildIdScavengerEnabled=true',
-  'worker.removableBuildIdDurationSinceDefault=1',
+  'history.enableRequestIdRefLinks=true',
 ];
 
 function setupRuntime(recordedLogs?: { [workflowId: string]: LogEntry[] }, runtimeOpts?: Partial<RuntimeOptions>) {
@@ -58,7 +51,7 @@ function setupRuntime(recordedLogs?: { [workflowId: string]: LogEntry[] }, runti
         recordedLogs![workflowId] ??= [];
         recordedLogs![workflowId].push(entry);
       })
-    : new DefaultLogger((process.env.TEST_LOG_LEVEL || 'WARN').toUpperCase() as LogLevel);
+    : new DefaultLogger((process.env.TEST_LOG_LEVEL || 'ERROR').toUpperCase() as LogLevel);
   Runtime.install({
     ...runtimeOpts,
     logger,
@@ -67,7 +60,7 @@ function setupRuntime(recordedLogs?: { [workflowId: string]: LogEntry[] }, runti
       logging: {
         ...runtimeOpts?.telemetryOptions?.logging,
         filter: makeTelemetryFilterString({
-          core: (process.env.TEST_LOG_LEVEL || 'INFO').toUpperCase() as LogLevel,
+          core: (process.env.TEST_LOG_LEVEL || 'ERROR').toUpperCase() as LogLevel,
         }),
       },
     },
@@ -201,6 +194,9 @@ export interface Helpers {
   assertWorkflowUpdateFailed(p: Promise<any>, causeConstructor: ErrorConstructor, message?: string): Promise<void>;
   assertWorkflowFailedError(p: Promise<any>, causeConstructor: ErrorConstructor, message?: string): Promise<void>;
   updateHasBeenAdmitted(handle: WorkflowHandle<workflow.Workflow>, updateId: string): Promise<boolean>;
+  registerNexusEndpoint(
+    suffix?: string
+  ): Promise<{ endpointName: string; endpointIdentifier: NexusEndpointIdentifier }>;
 }
 
 export function configurableHelpers<T>(
@@ -208,7 +204,10 @@ export function configurableHelpers<T>(
   workflowBundle: WorkflowBundle,
   testEnv: TestWorkflowEnvironment
 ): Helpers {
-  const taskQueue = t.title.replace(/ /g, '_');
+  const taskQueue = t.title
+    .toLowerCase()
+    .replaceAll(/[ _()'-]+/g, '-')
+    .replace(/^[-]?(.+?)[-]?$/, '$1');
 
   return {
     taskQueue,
@@ -295,6 +294,25 @@ export function configurableHelpers<T>(
       } catch (err) {
         if (isGrpcServiceError(err) && err.code === grpcStatus.NOT_FOUND) {
           return false;
+        }
+        throw err;
+      }
+    },
+    async registerNexusEndpoint(
+      suffix?: string
+    ): Promise<{ endpointName: string; endpointIdentifier: NexusEndpointIdentifier }> {
+      const endpointName = (suffix ? `${taskQueue}-${suffix}` : taskQueue).replaceAll('_', '-');
+      try {
+        const endpointIdentifier = await testEnv.createNexusEndpoint(endpointName, taskQueue);
+        t.teardown(() =>
+          testEnv.deleteNexusEndpoint(endpointIdentifier).catch(() => {
+            /* ignore cleanup errors */
+          })
+        );
+        return { endpointName, endpointIdentifier };
+      } catch (err) {
+        if (err instanceof Error) {
+          err.message = `Failed to register Nexus endpoint '${endpointName}': ${err.message}`;
         }
         throw err;
       }

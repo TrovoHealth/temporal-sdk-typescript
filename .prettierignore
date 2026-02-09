@@ -4,13 +4,10 @@ packages/core-bridge/target
 packages/core-bridge/bridge-macros/target
 sdk-core
 lib
-es2020
-commonjs
 .docusaurus
 packages/*/CHANGELOG.md
 packages/docs/docs/api
 typedoc-sidebar.js
-lerna.json
 pnpm-lock.yaml
 packages/proto/protos/root.d.ts
 packages/proto/protos/json-module.js
